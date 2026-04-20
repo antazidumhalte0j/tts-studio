@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TTS Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f11;
+    --surface: #15171a;
+    --surface2: #1c1f23;
+    --border: #2a2d32;
+    --border-light: #363a41;
+    --accent: #4af0b0;
+    --accent-dim: rgba(74, 240, 176, 0.12);
+    --accent-hover: #3dd99e;
+    --text: #e8eaed;
+    --text-muted: #7a8190;
+    --text-dim: #4a5060;
+    --danger: #ff6b6b;
+    --warning: #ffc94d;
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --transition: 0.18s ease;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ─── Layout ─── */
+  .app {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+
+  /* ─── Header ─── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .logo-text {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    letter-spacing: 0.04em;
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    transition: background var(--transition);
+  }
+  .status-dot.ready { background: var(--accent); box-shadow: 0 0 8px rgba(74,240,176,0.5); }
+  .status-dot.loading { background: var(--warning); animation: pulse 1s infinite; }
+  .status-dot.error { background: var(--danger); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ─── Setup Guide ─── */
+  .setup-guide {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+
+  .setup-toggle {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: color var(--transition);
+  }
+  .setup-toggle:hover { color: var(--text); }
+
+  .setup-toggle-icon {
+    font-size: 16px;
+    transition: transform var(--transition);
+    font-style: normal;
+  }
+  .setup-guide.open .setup-toggle-icon { transform: rotate(180deg); }
+
+  .setup-content {
+    display: none;
+    padding: 0 18px 18px;
+    border-top: 1px solid var(--border);
+  }
+  .setup-guide.open .setup-content { display: block; }
+
+  .setup-steps {
+    list-style: none;
+    counter-reset: step;
+    margin-top: 14px;
+  }
+
+  .setup-steps li {
+    counter-increment: step;
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  .setup-steps li::before {
+    content: counter(step);
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    background: var(--surface2);
+    border: 1px solid var(--border-light);
+    border-radius: 50%;
+    font-family: var(--mono);
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    margin-top: 1px;
+  }
+
+  .setup-steps a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .setup-steps a:hover { text-decoration: underline; }
+
+  .setup-steps code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--surface2);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--text);
+  }
+
+  /* ─── API Key ─── */
+  .api-key-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  .field-wrap {
+    position: relative;
+    flex: 1;
+  }
+
+  .field-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+    display: block;
+  }
+
+  input[type="text"], input[type="password"], select, textarea {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  input[type="text"]:focus, input[type="password"]:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+
+  select {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a8190' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+
+  select option { background: #1c1f23; }
+
+  textarea {
+    font-family: var(--sans);
+    font-size: 14px;
+    resize: vertical;
+    min-height: 140px;
+    line-height: 1.6;
+  }
+
+  /* ─── Buttons ─── */
+  .btn {
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 16px;
+    transition: all var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0a0c0e;
+    font-weight: 600;
+  }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-ghost {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .btn-ghost:hover:not(:disabled) { border-color: var(--border-light); color: var(--text); }
+  .btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-icon {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 10px 11px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all var(--transition);
+    display: inline-flex;
+    align-items: center;
+    font-size: 15px;
+  }
+  .btn-icon:hover { border-color: var(--border-light); color: var(--text); }
+
+  /* ─── Grid ─── */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  /* ─── Sliders ─── */
+  .slider-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  .slider-value {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    min-width: 32px;
+    text-align: right;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    border: none;
+    padding: 0;
+    margin-top: 4px;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 6px rgba(74,240,176,0.4);
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+  }
+
+  input[type="range"]:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  input[type="range"]:disabled::-webkit-slider-thumb { cursor: not-allowed; }
+
+  .disabled-note {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-style: italic;
+  }
+
+  /* ─── Sections ─── */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+
+  .section-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ─── Input mode toggle ─── */
+  .mode-toggle {
+    display: flex;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 3px;
+    gap: 3px;
+    margin-bottom: 10px;
+    width: fit-content;
+  }
+
+  .mode-btn {
+    background: none;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+  .mode-btn.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+
+  /* ─── Char counter ─── */
+  .textarea-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 5px;
+  }
+
+  .char-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .char-count.warn { color: var(--warning); }
+  .char-count.over { color: var(--danger); }
+
+  /* ─── Generate row ─── */
+  .generate-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .btn-generate {
+    flex: 1;
+    min-width: 160px;
+    justify-content: center;
+    padding: 13px 20px;
+    font-size: 14px;
+  }
+
+  /* ─── Audio Player ─── */
+  .audio-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    margin-top: 14px;
+    display: none;
+  }
+  .audio-section.visible { display: block; }
+
+  .audio-player-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  audio {
+    flex: 1;
+    min-width: 200px;
+    height: 36px;
+    border-radius: var(--radius);
+  }
+
+  audio::-webkit-media-controls-panel { background: var(--surface2); }
+
+  .download-filename {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .download-filename input {
+    flex: 1;
+    min-width: 160px;
+  }
+
+  /* ─── Toast ─── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface2);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    padding: 10px 18px;
+    font-size: 13px;
+    color: var(--text);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.25s ease;
+    z-index: 1000;
+    white-space: nowrap;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .toast.error { border-color: var(--danger); color: var(--danger); }
+  .toast.success { border-color: var(--accent); color: var(--accent); }
+
+  /* ─── Spinner ─── */
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(10,12,14,0.3);
+    border-top-color: #0a0c0e;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ─── Tier badge ─── */
+  .tier-badge {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid currentColor;
+  }
+  .tier-hd { color: var(--accent); }
+  .tier-neural { color: #7eb8ff; }
+  .tier-wavenet { color: #c97bff; }
+  .tier-standard { color: var(--text-dim); }
+
+  /* ─── Tips Panel ─── */
+  .tips-panel {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .tips-toggle {
+    width: 100%;
+    background: var(--surface2);
+    border: none;
+    padding: 9px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    transition: color var(--transition);
+    gap: 8px;
+  }
+  .tips-toggle:hover { color: var(--text-muted); }
+
+  .tips-toggle-left { display: flex; align-items: center; gap: 7px; }
+  .tips-toggle-icon { font-style: normal; transition: transform var(--transition); font-size: 14px; }
+  .tips-panel.open .tips-toggle-icon { transform: rotate(180deg); }
+
+  .tips-content {
+    display: none;
+    padding: 14px;
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .tips-panel.open .tips-content { display: block; }
+
+  .tips-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+  }
+
+  .tips-tab {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    padding: 4px 11px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+  .tips-tab:hover { color: var(--text-muted); }
+  .tips-tab.active {
+    background: var(--surface);
+    border-color: var(--border-light);
+    color: var(--text);
+  }
+
+  .tips-pane { display: none; }
+  .tips-pane.active { display: block; }
+
+  .tips-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 8px;
+  }
+
+  .tip-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all var(--transition);
+    position: relative;
+  }
+  .tip-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent-dim);
+  }
+  .tip-card:hover .tip-insert-hint { opacity: 1; }
+
+  .tip-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+
+  .tip-code {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    line-height: 1.5;
+    word-break: break-all;
+  }
+
+  .tip-desc {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 5px;
+    line-height: 1.4;
+  }
+
+  .tip-insert-hint {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 9px;
+    font-family: var(--mono);
+    color: var(--accent);
+    opacity: 0;
+    transition: opacity var(--transition);
+    letter-spacing: 0.04em;
+  }
+
+  .tips-plain-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tips-plain-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .tips-plain-item .tip-icon {
+    flex-shrink: 0;
+    font-size: 14px;
+    margin-top: 0px;
+  }
+
+  .tips-docs-link {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tips-docs-link span {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+  }
+
+  .tips-docs-link a {
+    font-size: 11px;
+    color: var(--accent);
+    text-decoration: none;
+    font-family: var(--mono);
+    letter-spacing: 0.03em;
+  }
+  .tips-docs-link a:hover { text-decoration: underline; }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 600px) {
+    .app { padding: 16px 14px 48px; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .api-key-row { flex-wrap: wrap; }
+    .api-key-row .field-wrap { width: 100%; }
+    .btn-generate { min-width: 100%; }
+    header { padding-bottom: 16px; margin-bottom: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <span class="logo-text">TTS Studio</span>
+      <span class="logo-sub">// Google Cloud</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="status-dot" id="statusDot"></div>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim)" id="statusText">no key</span>
+    </div>
+  </header>
+
+  <!-- Setup Guide -->
+  <div class="setup-guide" id="setupGuide">
+    <button class="setup-toggle" onclick="toggleSetup()">
+      <span>First-time setup — how to get your API key</span>
+      <span class="setup-toggle-icon">▾</span>
+    </button>
+    <div class="setup-content">
+      <ol class="setup-steps">
+        <li>Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> and sign in with your Google account.</li>
+        <li>Create a new project: click the project selector at the top, then <code>New Project</code>. Give it any name (e.g. <code>tts-narration</code>) and click <code>Create</code>.</li>
+        <li>Enable the TTS API: go to <a href="https://console.cloud.google.com/apis/library/texttospeech.googleapis.com" target="_blank">this link</a>, make sure your project is selected, and click <code>Enable</code>.</li>
+        <li>Create an API key: go to <code>APIs &amp; Services → Credentials → Create Credentials → API Key</code>. Copy the key that appears.</li>
+        <li>(Optional but recommended) Restrict the key to <code>Cloud Text-to-Speech API</code> only under <code>API restrictions</code>.</li>
+        <li>Paste the key into the field below. It will be saved in your browser for next time.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- API Key -->
+  <div class="api-key-row">
+    <div class="field-wrap">
+      <label class="field-label">API Key</label>
+      <input type="password" id="apiKey" placeholder="AIza..." autocomplete="off" oninput="onApiKeyChange()">
+    </div>
+    <div style="padding-top:22px;display:flex;gap:6px;">
+      <button class="btn-icon" onclick="toggleKeyVisibility()" id="keyToggle" title="Show/hide key">👁</button>
+      <button class="btn-icon" onclick="clearKey()" title="Clear saved key">✕</button>
+    </div>
+  </div>
+
+  <!-- Voice Config -->
+  <div class="section">
+    <div class="section-title">Voice</div>
+
+    <div class="grid-3">
+      <div class="field">
+        <label class="field-label">Language</label>
+        <select id="language" onchange="loadVoices()">
+          <option value="en-US">English (US)</option>
+          <option value="en-GB">English (UK)</option>
+          <option value="en-AU">English (AU)</option>
+          <option value="en-IN">English (IN)</option>
+          <option value="de-DE">German</option>
+          <option value="fr-FR">French</option>
+          <option value="es-ES">Spanish (ES)</option>
+          <option value="es-US">Spanish (US)</option>
+          <option value="it-IT">Italian</option>
+          <option value="pt-BR">Portuguese (BR)</option>
+          <option value="ja-JP">Japanese</option>
+          <option value="ko-KR">Korean</option>
+          <option value="cmn-CN">Chinese (Mandarin)</option>
+          <option value="ar-XA">Arabic</option>
+          <option value="hi-IN">Hindi</option>
+          <option value="nl-NL">Dutch</option>
+          <option value="pl-PL">Polish</option>
+          <option value="ru-RU">Russian</option>
+          <option value="sv-SE">Swedish</option>
+          <option value="tr-TR">Turkish</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Tier</label>
+        <select id="tier" onchange="filterVoices()">
+          <option value="">All tiers</option>
+          <option value="Chirp" selected>Chirp 3 HD</option>
+          <option value="Neural2">Neural2</option>
+          <option value="Wavenet">WaveNet</option>
+          <option value="Standard">Standard</option>
+          <option value="Journey">Journey</option>
+          <option value="Studio">Studio</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Voice</label>
+        <select id="voice" onchange="onVoiceChange()">
+          <option value="">— enter API key first —</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Config -->
+  <div class="section">
+    <div class="section-title">Audio</div>
+
+    <div class="grid-2" style="margin-bottom:16px;">
+      <div class="slider-wrap">
+        <div class="slider-header">
+          <label class="field-label" style="margin:0">Speaking Rate</label>
+          <span class="slider-value" id="rateVal">1.0×</span>
+        </div>
+        <input type="range" id="speakingRate" min="0.25" max="4.0" step="0.05" value="1.0"
+               oninput="document.getElementById('rateVal').textContent = parseFloat(this.value).toFixed(2)+'×'">
+        <span class="disabled-note" id="rateNote" style="display:none">Not supported by Chirp 3 HD</span>
+      </div>
+
+      <div class="slider-wrap">
+        <div class="slider-header">
+          <label class="field-label" style="margin:0">Pitch</label>
+          <span class="slider-value" id="pitchVal">0.0</span>
+        </div>
+        <input type="range" id="pitch" min="-20" max="20" step="0.5" value="0"
+               oninput="document.getElementById('pitchVal').textContent = parseFloat(this.value).toFixed(1)">
+        <span class="disabled-note" id="pitchNote" style="display:none">Not supported by Chirp 3 HD</span>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="field">
+        <label class="field-label">Output Format</label>
+        <select id="audioEncoding">
+          <option value="MP3">MP3</option>
+          <option value="LINEAR16">WAV (LINEAR16)</option>
+          <option value="OGG_OPUS">OGG Opus</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Volume Gain (dB)</label>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+          <input type="range" id="volumeGain" min="-6" max="6" step="0.5" value="0"
+                 oninput="document.getElementById('volVal').textContent = parseFloat(this.value).toFixed(1)+'dB'"
+                 style="margin-top:0;">
+          <span class="slider-value" id="volVal" style="min-width:40px;">0.0dB</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Text Input -->
+  <div class="section">
+    <div class="section-title">Input</div>
+
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="modeText" onclick="setMode('text')">Plain text</button>
+      <button class="mode-btn" id="modeMarkup" onclick="setMode('markup')" style="display:none" title="Chirp 3 HD only">Markup</button>
+      <button class="mode-btn" id="modeSsml" onclick="setMode('ssml')">SSML</button>
+    </div>
+
+    <!-- Tips Panel -->
+    <div class="tips-panel" id="tipsPanel">
+      <button class="tips-toggle" onclick="toggleTips()">
+        <span class="tips-toggle-left">
+          <span>✦</span>
+          <span>Narration tips &amp; input reference</span>
+        </span>
+        <span class="tips-toggle-icon">▾</span>
+      </button>
+      <div class="tips-content">
+        <div class="tips-tabs">
+          <button class="tips-tab active" onclick="switchTipsTab('plain', this)">Plain text tips</button>
+          <button class="tips-tab" id="tipsTabMarkup" onclick="switchTipsTab('markup', this)" style="display:none">Markup</button>
+          <button class="tips-tab" onclick="switchTipsTab('ssml', this)">SSML reference</button>
+        </div>
+
+        <!-- Plain text tips -->
+        <div class="tips-pane active" id="tipsPlain">
+          <div class="tips-plain-list">
+            <div class="tips-plain-item"><span class="tip-icon">·</span><span>End sentences with a <strong>period</strong> — it produces a natural pause. A comma produces a shorter pause.</span></div>
+            <div class="tips-plain-item"><span class="tip-icon">·</span><span>Use an <strong>ellipsis</strong> (…) to create a longer, more dramatic pause between clauses.</span></div>
+            <div class="tips-plain-item"><span class="tip-icon">·</span><span><strong>Capitalisation</strong> affects stress — all-caps words like ECG or CABG may be spelled out letter-by-letter depending on the voice. Use SSML <code style="font-family:var(--mono);font-size:11px;background:var(--surface);padding:1px 4px;border-radius:3px;">&lt;sub&gt;</code> to control this.</span></div>
+            <div class="tips-plain-item"><span class="tip-icon">·</span><span><strong>Numbers</strong> are read as spoken words. "3" → "three". For ordinals like "3rd", write it out or use SSML.</span></div>
+            <div class="tips-plain-item"><span class="tip-icon">·</span><span>For a <strong>natural narration pace</strong>, write shorter sentences. Long run-on sentences with many clauses can sound rushed.</span></div>
+            <div class="tips-plain-item"><span class="tip-icon">·</span><span>Switch to <strong>SSML mode</strong> for precise control over pauses, emphasis, pronunciation, and pacing of specific words.</span></div>
+          </div>
+        </div>
+
+        <!-- Markup tips (Chirp 3 HD only) -->
+        <div class="tips-pane" id="tipsMarkup">
+          <div class="tips-plain-list" style="margin-bottom:14px;">
+            <div class="tips-plain-item"><span class="tip-icon">·</span><span><strong>Markup</strong> is a Chirp 3 HD–exclusive input mode. It's simpler than SSML — just write plain prose and drop pause tags inline where you want silences.</span></div>
+            <div class="tips-plain-item"><span class="tip-icon">·</span><span>Pause duration is <strong>contextual</strong> — the AI decides the exact length based on surrounding text, like a human speaker would. Results may vary slightly between generations.</span></div>
+            <div class="tips-plain-item"><span class="tip-icon">·</span><span>You can <strong>stack tags</strong> for longer silences, e.g. <code style="font-family:var(--mono);font-size:11px;background:var(--surface);padding:1px 4px;border-radius:3px;">[pause long][pause long]</code>, but don't overdo it.</span></div>
+            <div class="tips-plain-item"><span class="tip-icon">·</span><span>Tags placed in <strong>unnatural positions</strong> (mid-word, inside a clause) may be ignored by the model.</span></div>
+          </div>
+          <div class="tips-grid">
+            <div class="tip-card" onclick="insertSnippet('[pause]')">
+              <div class="tip-insert-hint">click to insert ↓</div>
+              <div class="tip-label">Standard pause</div>
+              <div class="tip-code">[pause]</div>
+              <div class="tip-desc">A medium pause. Good for transitions between steps or clauses.</div>
+            </div>
+            <div class="tip-card" onclick="insertSnippet('[pause short]')">
+              <div class="tip-insert-hint">click to insert ↓</div>
+              <div class="tip-label">Short pause</div>
+              <div class="tip-code">[pause short]</div>
+              <div class="tip-desc">Brief beat. Use between list items or short descriptive phrases.</div>
+            </div>
+            <div class="tip-card" onclick="insertSnippet('[pause long]')">
+              <div class="tip-insert-hint">click to insert ↓</div>
+              <div class="tip-label">Long pause</div>
+              <div class="tip-code">[pause long]</div>
+              <div class="tip-desc">Longer silence. Good before a key observation or after a major step.</div>
+            </div>
+            <div class="tip-card" onclick="insertSnippet('[pause long][pause long]')">
+              <div class="tip-insert-hint">click to insert ↓</div>
+              <div class="tip-label">Extended pause</div>
+              <div class="tip-code">[pause long][pause long]</div>
+              <div class="tip-desc">Stack two long tags for an extended silence between major sections.</div>
+            </div>
+            <div class="tip-card" onclick="insertSnippet('The mitral valve is now visible. [pause long] Proceeding with retraction.')">
+              <div class="tip-insert-hint">click to insert ↓</div>
+              <div class="tip-label">Surgical narration example</div>
+              <div class="tip-code">…visible. [pause long] Proceeding…</div>
+              <div class="tip-desc">Click to insert a full example showing markup in a surgical narration context.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SSML tips -->
+        <div class="tips-pane" id="tipsSsml">
+          <div class="tips-grid">
+
+            <div class="tip-card" onclick="insertSnippet('&lt;break time=&quot;500ms&quot;/&gt;')">
+              <div class="tip-insert-hint">click to insert ↓</div>
+              <div class="tip-label">Pause</div>
+              <div class="tip-code">&lt;break time="500ms"/&gt;</div>
+              <div class="tip-desc">Insert a pause. Use ms or s. Try 300ms–1s for surgical narration beats.</div>
+            </div>
+
+            <div class="tip-card" onclick="insertSnippet('&lt;emphasis level=&quot;strong&quot;&gt;word&lt;/emphasis&gt;')">
+              <div class="tip-insert-hint">click to insert ↓</div>
+              <div class="tip-label">Emphasis</div>
+              <div class="tip-code">&lt;emphasis level="strong"&gt;word&lt;/emphasis&gt;</div>
+              <div class="tip-desc">Levels: strong, moderate, reduced. Adds vocal stress to key terms.</div>
+            </div>
+
+            <div class="tip-card" onclick="insertSnippet('&lt;say-as interpret-as=&quot;characters&quot;&gt;ECG&lt;/say-as&gt;')">
+              <div class="tip-insert-hint">click to insert ↓</div>
+              <div class="tip-label">Spell out acronym</div>
+              <div class="tip-code">&lt;say-as interpret-as="characters"&gt;ECG&lt;/say-as&gt;</div>
+              <div class="tip-desc">Forces letter-by-letter reading. Useful for ECG, CABG, LAD, etc.</div>
+            </div>
+
+            <div class="tip-card" onclick="insertSnippet('&lt;sub alias=&quot;spoken form&quot;&gt;abbreviation&lt;/sub&gt;')">
+              <div class="tip-insert-hint">click to insert ↓</div>
+              <div class="tip-label">Substitution</div>
+              <div class="tip-code">&lt;sub alias="left anterior descending"&gt;LAD&lt;/sub&gt;</div>
+              <div class="tip-desc">Displays abbreviated text but speaks the alias. Great for medical shorthand.</div>
+            </div>
+
+            <div class="tip-card" onclick="insertSnippet('&lt;say-as interpret-as=&quot;ordinal&quot;&gt;3&lt;/say-as&gt;')">
+              <div class="tip-insert-hint">click to insert ↓</div>
+              <div class="tip-label">Ordinal number</div>
+              <div class="tip-code">&lt;say-as interpret-as="ordinal"&gt;3&lt;/say-as&gt;</div>
+              <div class="tip-desc">Reads "3" as "third". Also try interpret-as="cardinal" for plain numbers.</div>
+            </div>
+
+            <div class="tip-card" onclick="insertSnippet('&lt;prosody rate=&quot;slow&quot;&gt;text here&lt;/prosody&gt;')">
+              <div class="tip-insert-hint">click to insert ↓</div>
+              <div class="tip-label">Local rate control</div>
+              <div class="tip-code">&lt;prosody rate="slow"&gt;text here&lt;/prosody&gt;</div>
+              <div class="tip-desc">Slows down a specific passage. Values: x-slow, slow, medium, fast, x-fast — or a % like 85%.</div>
+            </div>
+
+            <div class="tip-card" onclick="insertSnippet('&lt;prosody pitch=&quot;+2st&quot;&gt;text here&lt;/prosody&gt;')">
+              <div class="tip-insert-hint">click to insert ↓</div>
+              <div class="tip-label">Local pitch</div>
+              <div class="tip-code">&lt;prosody pitch="+2st"&gt;text here&lt;/prosody&gt;</div>
+              <div class="tip-desc">Adjust pitch for a word or phrase. Use semitones (st) or Hz. Negative values lower pitch.</div>
+            </div>
+
+            <div class="tip-card" onclick="insertSnippet('&lt;phoneme alphabet=&quot;ipa&quot; ph=&quot;ˌænəsˈθiːziə&quot;&gt;anaesthesia&lt;/phoneme&gt;')">
+              <div class="tip-insert-hint">click to insert ↓</div>
+              <div class="tip-label">Custom pronunciation</div>
+              <div class="tip-code">&lt;phoneme alphabet="ipa" ph="ˌænəsˈθiːziə"&gt;anaesthesia&lt;/phoneme&gt;</div>
+              <div class="tip-desc">IPA phonetic override for tricky medical terms the voice mispronounces.</div>
+            </div>
+
+            <div class="tip-card" onclick="insertSnippet('&lt;speak&gt;\n  &lt;break time=&quot;300ms&quot;/&gt;\n  The &lt;emphasis level=&quot;strong&quot;&gt;mitral valve&lt;/emphasis&gt; is now visible.\n  &lt;break time=&quot;700ms&quot;/&gt;\n  Proceeding with &lt;sub alias=&quot;coronary artery bypass graft&quot;&gt;CABG&lt;/sub&gt;.\n&lt;/speak&gt;')">
+              <div class="tip-insert-hint">click to insert ↓</div>
+              <div class="tip-label">Full SSML template</div>
+              <div class="tip-code">&lt;speak&gt; … &lt;/speak&gt;</div>
+              <div class="tip-desc">Click to insert a complete SSML template with common surgical narration patterns.</div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="tips-docs-link">
+          <span>Full reference →</span>
+          <a href="https://cloud.google.com/text-to-speech/docs/ssml" target="_blank">cloud.google.com/text-to-speech/docs/ssml ↗</a>
+        </div>
+      </div>
+    </div>
+
+    <textarea id="inputText" placeholder="Enter narration text here…" oninput="updateCharCount()"></textarea>
+    <div class="textarea-footer">
+      <span class="char-count" id="charCount">0 chars</span>
+    </div>
+  </div>
+
+  <!-- Generate -->
+  <div class="generate-row">
+    <button class="btn btn-primary btn-generate" id="generateBtn" onclick="generate()" disabled>
+      <span id="generateLabel">Generate audio</span>
+    </button>
+    <button class="btn btn-ghost" onclick="resetAudio()" id="resetBtn" style="display:none">Clear</button>
+  </div>
+
+  <!-- Audio Output -->
+  <div class="audio-section" id="audioSection">
+    <div class="section-title">Output</div>
+    <div class="audio-player-wrap">
+      <audio id="audioPlayer" controls></audio>
+    </div>
+    <div class="download-filename">
+      <div class="field-wrap" style="flex:1;">
+        <label class="field-label">Filename</label>
+        <input type="text" id="filename" value="narration" placeholder="narration">
+      </div>
+      <div style="padding-top:22px;">
+        <button class="btn btn-ghost" onclick="downloadAudio()">↓ Download</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── State ───────────────────────────────────────────────
+let allVoices = [];
+let currentAudioBlob = null;
+let inputMode = 'text';
+let keyVisible = false;
+
+// ─── Init ─────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('gcp_tts_api_key');
+  if (saved) {
+    document.getElementById('apiKey').value = saved;
+    updateStatus('ready', 'key saved');
+    loadVoices();
+  }
+  updateCharCount();
+});
+
+// ─── API Key ──────────────────────────────────────────────
+function onApiKeyChange() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (key.length > 10) {
+    localStorage.setItem('gcp_tts_api_key', key);
+    updateStatus('ready', 'key saved');
+    loadVoices();
+  } else {
+    updateStatus('', 'no key');
+    document.getElementById('generateBtn').disabled = true;
+  }
+}
+
+function clearKey() {
+  localStorage.removeItem('gcp_tts_api_key');
+  document.getElementById('apiKey').value = '';
+  updateStatus('', 'no key');
+  allVoices = [];
+  document.getElementById('voice').innerHTML = '<option value="">— enter API key first —</option>';
+  document.getElementById('generateBtn').disabled = true;
+  showToast('API key cleared', 'success');
+}
+
+function toggleKeyVisibility() {
+  const input = document.getElementById('apiKey');
+  keyVisible = !keyVisible;
+  input.type = keyVisible ? 'text' : 'password';
+  document.getElementById('keyToggle').textContent = keyVisible ? '🙈' : '👁';
+}
+
+// ─── Status ───────────────────────────────────────────────
+function updateStatus(state, text) {
+  const dot = document.getElementById('statusDot');
+  const label = document.getElementById('statusText');
+  dot.className = 'status-dot' + (state ? ' ' + state : '');
+  label.textContent = text;
+}
+
+// ─── Setup Guide ──────────────────────────────────────────
+function toggleSetup() {
+  document.getElementById('setupGuide').classList.toggle('open');
+}
+
+// ─── Load Voices ─────────────────────────────────────────
+async function loadVoices() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) return;
+  const lang = document.getElementById('language').value;
+
+  updateStatus('loading', 'loading voices…');
+
+  try {
+    const res = await fetch(
+      `https://texttospeech.googleapis.com/v1/voices?languageCode=${lang}&key=${key}`
+    );
+    const data = await res.json();
+
+    if (!res.ok) {
+      const msg = data.error?.message || 'Failed to load voices';
+      updateStatus('error', 'error');
+      showToast(msg, 'error');
+      return;
+    }
+
+    allVoices = data.voices || [];
+    updateStatus('ready', `${allVoices.length} voices`);
+    filterVoices();
+    document.getElementById('generateBtn').disabled = false;
+  } catch (e) {
+    updateStatus('error', 'network error');
+    showToast('Network error — check your connection', 'error');
+  }
+}
+
+function filterVoices() {
+  const tier = document.getElementById('tier').value;
+  const voiceEl = document.getElementById('voice');
+  const prev = voiceEl.value;
+
+  let filtered = allVoices;
+  if (tier) {
+    filtered = allVoices.filter(v => v.name.includes(tier));
+  }
+
+  filtered.sort((a, b) => a.name.localeCompare(b.name));
+
+  voiceEl.innerHTML = filtered.length
+    ? filtered.map(v => {
+        const gender = v.ssmlGender === 'FEMALE' ? '♀' : v.ssmlGender === 'MALE' ? '♂' : '~';
+        return `<option value="${v.name}">${gender} ${v.name}</option>`;
+      }).join('')
+    : '<option value="">No voices for this tier</option>';
+
+  // Try to restore previous selection
+  if (prev && filtered.find(v => v.name === prev)) {
+    voiceEl.value = prev;
+  }
+
+  onVoiceChange();
+}
+
+function onVoiceChange() {
+  const voice = document.getElementById('voice').value;
+  const isChirpHD = voice.toLowerCase().includes('chirp3') || voice.toLowerCase().includes('chirp-hd');
+
+  const rateSlider = document.getElementById('speakingRate');
+  const pitchSlider = document.getElementById('pitch');
+  const rateNote = document.getElementById('rateNote');
+  const pitchNote = document.getElementById('pitchNote');
+
+  // Chirp 3 HD supports speaking_rate but NOT pitch
+  rateSlider.disabled = false;
+  rateNote.style.display = 'none';
+  pitchSlider.disabled = isChirpHD;
+  pitchNote.style.display = isChirpHD ? 'block' : 'none';
+
+  // Show Markup mode button only for Chirp 3 HD
+  const markupBtn = document.getElementById('modeMarkup');
+  const markupTipsTab = document.getElementById('tipsTabMarkup');
+  markupBtn.style.display = isChirpHD ? 'inline-flex' : 'none';
+  markupTipsTab.style.display = isChirpHD ? 'inline-flex' : 'none';
+
+  // If Markup was active but we switched to a non-Chirp voice, fall back to text
+  if (!isChirpHD && inputMode === 'markup') {
+    setMode('text');
+  }
+}
+
+// ─── Input Mode ───────────────────────────────────────────
+function setMode(mode) {
+  inputMode = mode;
+  document.getElementById('modeText').classList.toggle('active', mode === 'text');
+  document.getElementById('modeMarkup').classList.toggle('active', mode === 'markup');
+  document.getElementById('modeSsml').classList.toggle('active', mode === 'ssml');
+
+  const placeholders = {
+    text: 'Enter narration text here…',
+    markup: 'The mitral valve is now visible. [pause long] Proceeding with retraction of the left atrial appendage. [pause] Cardioplegia is being delivered.',
+    ssml: '<speak>Enter SSML here…\n  <break time="500ms"/> <emphasis level="strong">Example</emphasis>\n</speak>'
+  };
+  document.getElementById('inputText').placeholder = placeholders[mode];
+
+  // Auto-switch tips tab to match the selected mode
+  const tabMap = { text: 'plain', markup: 'markup', ssml: 'ssml' };
+  const targetTab = tabMap[mode];
+  const tabBtn = document.querySelector(`.tips-tab[onclick*="'${targetTab}'"]`);
+  if (tabBtn && tabBtn.style.display !== 'none') {
+    switchTipsTab(targetTab, tabBtn);
+  }
+}
+
+// ─── Char Count ───────────────────────────────────────────
+function updateCharCount() {
+  const n = document.getElementById('inputText').value.length;
+  const el = document.getElementById('charCount');
+  el.textContent = n.toLocaleString() + ' chars';
+  el.className = 'char-count' + (n > 4500 ? ' over' : n > 4000 ? ' warn' : '');
+}
+
+// ─── Generate ─────────────────────────────────────────────
+async function generate() {
+  const key = document.getElementById('apiKey').value.trim();
+  const text = document.getElementById('inputText').value.trim();
+  const voice = document.getElementById('voice').value;
+
+  if (!key) { showToast('Enter your API key first', 'error'); return; }
+  if (!text) { showToast('Enter some text to synthesize', 'error'); return; }
+  if (!voice) { showToast('Select a voice', 'error'); return; }
+
+  const isChirpHD = voice.toLowerCase().includes('chirp3') || voice.toLowerCase().includes('chirp-hd');
+  const lang = document.getElementById('language').value;
+  const encoding = document.getElementById('audioEncoding').value;
+  const rate = parseFloat(document.getElementById('speakingRate').value);
+  const pitchVal = parseFloat(document.getElementById('pitch').value);
+  const volume = parseFloat(document.getElementById('volumeGain').value);
+
+  // Build request body
+  const body = {
+    input: inputMode === 'ssml' ? { ssml: text }
+         : inputMode === 'markup' ? { markup: text }
+         : { text },
+    voice: { languageCode: lang, name: voice },
+    audioConfig: { audioEncoding: encoding, volumeGainDb: volume }
+  };
+
+  if (!isChirpHD) {
+    body.audioConfig.speakingRate = rate;
+    body.audioConfig.pitch = pitchVal;
+  } else {
+    // Chirp 3 HD supports speaking_rate but not pitch
+    body.audioConfig.speakingRate = rate;
+  }
+
+  // UI → loading
+  const btn = document.getElementById('generateBtn');
+  const label = document.getElementById('generateLabel');
+  btn.disabled = true;
+  label.innerHTML = '<span class="spinner"></span> Generating…';
+  updateStatus('loading', 'synthesizing…');
+
+  try {
+    const res = await fetch(
+      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      const msg = data.error?.message || 'Synthesis failed';
+      updateStatus('error', 'error');
+      showToast(msg, 'error');
+      return;
+    }
+
+    // Decode base64 audio
+    const mimeMap = { MP3: 'audio/mpeg', LINEAR16: 'audio/wav', OGG_OPUS: 'audio/ogg' };
+    const mime = mimeMap[encoding] || 'audio/mpeg';
+    const binary = atob(data.audioContent);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    currentAudioBlob = new Blob([bytes], { type: mime });
+
+    const url = URL.createObjectURL(currentAudioBlob);
+    const player = document.getElementById('audioPlayer');
+    player.src = url;
+    player.play();
+
+    document.getElementById('audioSection').classList.add('visible');
+    document.getElementById('resetBtn').style.display = 'inline-flex';
+    updateStatus('ready', 'done ✓');
+    showToast('Audio ready', 'success');
+
+    // Auto-suggest filename from first few words
+    const words = text.replace(/<[^>]+>/g, '').trim().split(/\s+/).slice(0, 4).join('-').toLowerCase().replace(/[^a-z0-9-]/g, '');
+    if (words) document.getElementById('filename').value = words;
+
+  } catch (e) {
+    updateStatus('error', 'error');
+    showToast('Request failed — check connection', 'error');
+  } finally {
+    btn.disabled = false;
+    label.textContent = 'Generate audio';
+  }
+}
+
+// ─── Download ─────────────────────────────────────────────
+function downloadAudio() {
+  if (!currentAudioBlob) return;
+  const ext = { MP3: 'mp3', LINEAR16: 'wav', OGG_OPUS: 'ogg' }[document.getElementById('audioEncoding').value] || 'mp3';
+  const name = (document.getElementById('filename').value.trim() || 'narration') + '.' + ext;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(currentAudioBlob);
+  a.download = name;
+  a.click();
+}
+
+// ─── Tips Panel ───────────────────────────────────────────
+function toggleTips() {
+  document.getElementById('tipsPanel').classList.toggle('open');
+}
+
+function switchTipsTab(tab, btn) {
+  document.querySelectorAll('.tips-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tips-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  const paneMap = { plain: 'tipsPlain', markup: 'tipsMarkup', ssml: 'tipsSsml' };
+  document.getElementById(paneMap[tab]).classList.add('active');
+}
+
+function insertSnippet(snippet) {
+  const ta = document.getElementById('inputText');
+  ta.focus();
+  const start = ta.selectionStart;
+  const end = ta.selectionEnd;
+  const before = ta.value.substring(0, start);
+  const after = ta.value.substring(end);
+  ta.value = before + snippet + after;
+  // Place cursor after inserted snippet
+  const pos = start + snippet.length;
+  ta.selectionStart = ta.selectionEnd = pos;
+  updateCharCount();
+  // Flash the textarea border briefly
+  ta.style.borderColor = 'var(--accent)';
+  setTimeout(() => { ta.style.borderColor = ''; }, 600);
+  showToast('Snippet inserted', 'success');
+}
+
+// ─── Reset ────────────────────────────────────────────────
+function resetAudio() {
+  document.getElementById('audioSection').classList.remove('visible');
+  document.getElementById('audioPlayer').src = '';
+  document.getElementById('resetBtn').style.display = 'none';
+  currentAudioBlob = null;
+}
+
+// ─── Toast ────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+</script>
+</body>
+</html>
